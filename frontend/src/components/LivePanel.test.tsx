@@ -240,6 +240,33 @@ describe('LivePanel', () => {
     }
   });
 
+  it('finishes as soon as the save is confirmed, even if the server close frame never arrives', async () => {
+    const { user, onSaved } = setup();
+    const ws = await startRecording(user);
+    ws.close = vi.fn(); // the close event never reaches us on its own
+
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(screen.getByRole('button', { name: 'Stop recording' }));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      act(() => ws.receive({ type: 'saved', transcription: SAVED }));
+
+      expect(screen.getByText('Ready')).toBeInTheDocument();
+      expect(onSaved).toHaveBeenCalledTimes(1);
+      expect(ws.close).toHaveBeenCalled();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(SAVE_TIMEOUT_MS);
+      });
+      expect(screen.queryByText(/did not confirm/)).not.toBeInTheDocument();
+      expect(screen.getByText('Standup', { selector: 'strong' })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('reports a lost connection instead of hanging when the socket dropped before stop', async () => {
     const { user } = setup();
     const ws = await startRecording(user);

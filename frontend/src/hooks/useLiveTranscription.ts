@@ -70,11 +70,15 @@ export function useLiveTranscription(onSaved: (t: Transcription | null) => void)
           setInterim(msg.interim);
           break;
         case 'saved':
+          // The save is confirmed: we're done, even if the server's close frame is slow to arrive.
+          clearTimeout(saveTimer.current);
           if (msg.transcription) {
             setFinalText(msg.transcription.content);
             setInterim('');
           }
           onSavedRef.current(msg.transcription ?? null);
+          update('idle');
+          ws.close();
           break;
         case 'error':
           setError(msg.message);
