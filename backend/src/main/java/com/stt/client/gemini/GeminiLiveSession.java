@@ -40,6 +40,7 @@ final class GeminiLiveSession implements LiveTranscriber.Session, WebSocket.List
 
     private final ObjectMapper mapper;
     private final LiveTranscriber.Listener listener;
+    private final Duration setupFallback;
     private final AtomicBoolean closed = new AtomicBoolean();
     private final AtomicBoolean ready = new AtomicBoolean();
     private final AtomicBoolean closedNotified = new AtomicBoolean();
@@ -52,8 +53,13 @@ final class GeminiLiveSession implements LiveTranscriber.Session, WebSocket.List
     private CompletableFuture<WebSocket> sendChain;
 
     GeminiLiveSession(ObjectMapper mapper, LiveTranscriber.Listener listener) {
+        this(mapper, listener, SETUP_FALLBACK);
+    }
+
+    GeminiLiveSession(ObjectMapper mapper, LiveTranscriber.Listener listener, Duration setupFallback) {
         this.mapper = mapper;
         this.listener = listener;
+        this.setupFallback = setupFallback;
     }
 
     void connect(HttpClient client, URI uri, String setupMessage) {
@@ -69,7 +75,7 @@ final class GeminiLiveSession implements LiveTranscriber.Session, WebSocket.List
                 fail("Could not connect to Gemini Live API: " + rootMessage(ex));
             }
         });
-        CompletableFuture.delayedExecutor(SETUP_FALLBACK.toMillis(), TimeUnit.MILLISECONDS)
+        CompletableFuture.delayedExecutor(setupFallback.toMillis(), TimeUnit.MILLISECONDS)
                 .execute(this::markReady);
     }
 

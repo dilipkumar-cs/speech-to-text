@@ -35,13 +35,22 @@ export async function startPcmCapture(
 
   return {
     stop: async () => {
-      worklet.port.postMessage('flush');
+      // Each step is independent so one failure can't keep the microphone on or block saving.
+      const attempt = (step: () => void) => {
+        try {
+          step();
+        } catch (e) {
+          console.warn('Audio cleanup step failed', e);
+        }
+      };
+      attempt(() => worklet.port.postMessage('flush'));
       // give the worklet one render quantum to deliver the final partial chunk
       await new Promise((r) => setTimeout(r, 50));
-      source.disconnect();
-      worklet.disconnect();
-      stream.getTracks().forEach((t) => t.stop());
-      await context.close();
+      attempt(() => source.disconnect());
+      attempt(() => worklet.disconnect());
+      attempt(() => stream.getTracks().forEach((t) => t.stop()));
+      // Closing the context only frees audio resources; don't let a slow or failing close block anything.
+      context.close().catch((e) => console.warn('AudioContext did not close cleanly', e));
     },
   };
 }

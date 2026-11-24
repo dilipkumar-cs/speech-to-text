@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -56,6 +58,8 @@ public class LiveTranscriptionWebSocketHandler extends AbstractWebSocketHandler 
     private final TranscriptionService transcriptionService;
     private final ObjectMapper mapper;
     private final Duration maxSession;
+    /** Recordings currently in progress, so they can be saved if the server shuts down. */
+    private final Set<LiveContext> active = ConcurrentHashMap.newKeySet();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "live-transcription-timer");
         t.setDaemon(true);
@@ -80,6 +84,7 @@ public class LiveTranscriptionWebSocketHandler extends AbstractWebSocketHandler 
         }
         LiveContext ctx = new LiveContext(session, new TranscriptAccumulator(transcriber.cumulativeFinals()));
         rawSession.getAttributes().put(CONTEXT, ctx);
+        active.add(ctx);
         ctx.upstream = transcriber.open(new UpstreamListener(ctx));
         ctx.timeout = scheduler.schedule(() -> finish(ctx, null), maxSession.toMillis(), TimeUnit.MILLISECONDS);
         log.info("Live session {} started", rawSession.getId());
@@ -121,6 +126,7 @@ public class LiveTranscriptionWebSocketHandler extends AbstractWebSocketHandler 
         if (ctx == null) {
             return;
         }
+        active.remove(ctx);
         if (ctx.timeout != null) {
             ctx.timeout.cancel(false);
         }
@@ -131,9 +137,24 @@ public class LiveTranscriptionWebSocketHandler extends AbstractWebSocketHandler 
         log.info("Live session {} closed ({})", session.getId(), status);
     }
 
+    /**
+     * On shutdown (e.g. a redeploy or restart) save every recording still in progress while the database is
+     * still available, then end those sessions. Otherwise an open recording would be lost.
+     */
     @PreDestroy
     void shutdown() {
         scheduler.shutdownNow();
+        for (LiveContext ctx : active) {
+            if (persist(ctx) != null) {
+                log.info("Saved in-progress live session {} during shutdown", ctx.client.getId());
+            }
+            if (ctx.upstream != null) {
+                ctx.upstream.close();
+            }
+            send(ctx.client, error("The server is restarting; your recording so far has been saved."));
+            closeQuietly(ctx.client);
+        }
+        active.clear();
     }
 
     /** Tells the engine the audio is over, waits briefly for the last final segment, then saves and closes. */

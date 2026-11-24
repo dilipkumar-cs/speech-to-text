@@ -32,12 +32,14 @@ export function HistoryDashboard({ refreshKey }: { refreshKey: number }) {
   useEffect(() => setSelected(new Set()), [debounced, page]);
 
   useEffect(() => {
+    const q = query.trim();
+    if (q === debounced) return; // nothing new to search for (also avoids resetting the page on first render)
     const t = setTimeout(() => {
-      setDebounced(query.trim());
+      setDebounced(q);
       setPage(0);
     }, 300);
     return () => clearTimeout(t);
-  }, [query]);
+  }, [query, debounced]);
 
   const load = useCallback(async () => {
     setLoading(true);

@@ -5,6 +5,7 @@ import com.stt.config.SttProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
@@ -22,13 +23,18 @@ public class GeminiLiveTranscriber implements LiveTranscriber {
 
     private final SttProperties.Gemini config;
     private final ObjectMapper mapper;
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .build();
+    private final HttpClient httpClient;
 
+    @Autowired
     public GeminiLiveTranscriber(SttProperties properties, ObjectMapper mapper) {
+        this(properties, mapper, HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build());
+    }
+
+    /** Lets tests supply an HttpClient instead of connecting to Google. */
+    GeminiLiveTranscriber(SttProperties properties, ObjectMapper mapper, HttpClient httpClient) {
         this.config = properties.gemini();
         this.mapper = mapper;
+        this.httpClient = httpClient;
     }
 
     @Override

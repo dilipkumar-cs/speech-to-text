@@ -5,6 +5,11 @@ import { startPcmCapture, type PcmCapture } from './useMicrophonePcm';
 
 export type LiveStatus = 'idle' | 'connecting' | 'recording' | 'stopping';
 
+/** Longest we wait for the microphone to shut down before sending "stop" anyway. */
+export const MIC_STOP_TIMEOUT_MS = 1500;
+/** Longest we wait for the server to confirm the save after "stop". */
+export const SAVE_TIMEOUT_MS = 15000;
+
 /**
  * Streams microphone audio to the backend (/ws/transcribe), which relays it to the Gemini Live API,
  * and receives interim + final transcripts in real time. On stop, the backend saves the transcript.
@@ -19,6 +24,7 @@ export function useLiveTranscription(onSaved: (t: Transcription | null) => void)
 
   const socket = useRef<WebSocket | null>(null);
   const capture = useRef<PcmCapture | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout>>();
   const statusRef = useRef<LiveStatus>('idle');
   const onSavedRef = useRef(onSaved);
   onSavedRef.current = onSaved;
@@ -28,11 +34,17 @@ export function useLiveTranscription(onSaved: (t: Transcription | null) => void)
     setStatus(s);
   };
 
+  /** Releases the microphone. Never throws and never waits longer than MIC_STOP_TIMEOUT_MS. */
   const stopCapture = useCallback(async () => {
     const c = capture.current;
     capture.current = null;
     setLevel(0);
-    if (c) await c.stop();
+    if (!c) return;
+    try {
+      await Promise.race([c.stop(), new Promise((resolve) => setTimeout(resolve, MIC_STOP_TIMEOUT_MS))]);
+    } catch (e) {
+      console.warn('Microphone did not stop cleanly', e);
+    }
   }, []);
 
   const start = useCallback(async () => {
@@ -71,6 +83,7 @@ export function useLiveTranscription(onSaved: (t: Transcription | null) => void)
     };
 
     ws.onclose = () => {
+      clearTimeout(saveTimer.current);
       socket.current = null;
       void stopCapture();
       update('idle');
@@ -105,8 +118,20 @@ export function useLiveTranscription(onSaved: (t: Transcription | null) => void)
       const ws = socket.current;
       if (!ws || statusRef.current !== 'recording') return;
       update('stopping');
-      await stopCapture();
-      if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'stop', title }));
+      await stopCapture(); // flushes the last audio chunk first; bounded, never throws
+      if (ws.readyState !== WebSocket.OPEN) {
+        setError('Lost connection to the server before the recording could be saved.');
+        update('idle');
+        return;
+      }
+      ws.send(JSON.stringify({ type: 'stop', title }));
+      // The server normally saves and closes within ~2 s; never leave the user stuck on "saving".
+      saveTimer.current = setTimeout(() => {
+        if (statusRef.current === 'stopping') {
+          setError('The server did not confirm the save in time. Please check History or try again.');
+          ws.close();
+        }
+      }, SAVE_TIMEOUT_MS);
     },
     [stopCapture],
   );
@@ -122,6 +147,7 @@ export function useLiveTranscription(onSaved: (t: Transcription | null) => void)
 
   useEffect(
     () => () => {
+      clearTimeout(saveTimer.current);
       socket.current?.close();
       void capture.current?.stop();
     },

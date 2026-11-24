@@ -90,6 +90,70 @@ class TranscriptionServiceImplTest {
     }
 
     @Test
+    void getReturnsTheMappedTranscription() {
+        Transcription existing = new Transcription("Notes", "hello", "en", TranscriptionSource.MANUAL, 5);
+        when(repository.findById(3L)).thenReturn(Optional.of(existing));
+
+        assertThat(service.get(3L).title()).isEqualTo("Notes");
+    }
+
+    @Test
+    void createKeepsAnExplicitSource() {
+        when(repository.save(any(Transcription.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TranscriptionResponse response = service.create(
+                new TranscriptionRequest("t", "text", TranscriptionSource.GEMINI_LIVE, null));
+
+        assertThat(response.source()).isEqualTo(TranscriptionSource.GEMINI_LIVE);
+    }
+
+    @Test
+    void updateReplacesTitleWhenProvided() {
+        Transcription existing = new Transcription("Old", "text", "en", TranscriptionSource.MANUAL, null);
+        when(repository.findById(1L)).thenReturn(Optional.of(existing));
+        when(repository.saveAndFlush(existing)).thenReturn(existing);
+
+        assertThat(service.update(1L, new TranscriptionRequest("  New  ", "text", null, null)).title()).isEqualTo("New");
+    }
+
+    @Test
+    void deleteRemovesAnExistingTranscription() {
+        Transcription existing = new Transcription("t", "text", "en", TranscriptionSource.MANUAL, null);
+        when(repository.findById(4L)).thenReturn(Optional.of(existing));
+
+        service.delete(4L);
+
+        verify(repository).delete(existing);
+    }
+
+    @Test
+    void deleteAllDeletesOnlyTheTranscriptionsThatExist() {
+        Transcription a = new Transcription("a", "x", "en", TranscriptionSource.MANUAL, null);
+        Transcription b = new Transcription("b", "y", "en", TranscriptionSource.MANUAL, null);
+        when(repository.findAllById(List.of(1L, 2L, 99L))).thenReturn(List.of(a, b));
+
+        assertThat(service.deleteAll(List.of(1L, 2L, 99L))).isEqualTo(2);
+        verify(repository).deleteAllInBatch(List.of(a, b));
+    }
+
+    @Test
+    void deleteAllWithNothingSelectedDoesNotTouchTheDatabase() {
+        assertThat(service.deleteAll(List.of())).isZero();
+        assertThat(service.deleteAll(null)).isZero();
+        verify(repository, never()).findAllById(any());
+        verify(repository, never()).deleteAllInBatch(any());
+    }
+
+    @Test
+    void statsCombinesCountAndTotalDuration() {
+        when(repository.count()).thenReturn(7L);
+        when(repository.totalDurationSeconds()).thenReturn(321L);
+
+        assertThat(service.stats().totalTranscriptions()).isEqualTo(7);
+        assertThat(service.stats().totalDurationSeconds()).isEqualTo(321);
+    }
+
+    @Test
     void listUsesSearchOnlyWhenQueryPresentAndClampsPageSize() {
         Page<Transcription> empty = new PageImpl<>(List.of());
         when(repository.findAll(any(Pageable.class))).thenReturn(empty);

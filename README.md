@@ -17,7 +17,7 @@ text-to-speech playback.
 | **Real-time transcription** | Mic audio is streamed in 100 ms chunks over a WebSocket. Interim words appear live (in grey) and are replaced by finalised text. |
 | **Multilingual / code-switching** | The Gemini Live transcription model auto-detects language **per utterance**, so a sentence like _"मुझे कल meeting attend करनी है"_ or _"ನಾಳೆ office ಗೆ ಹೋಗಬೇಕು"_ is transcribed as spoken. |
 | **Secure by design** | The browser never sees the Gemini API key. It streams to our Spring Boot backend, which relays the audio to Gemini. |
-| **Auto-save** | When you stop (or if the browser disconnects or the 10-minute session limit is hit) the transcript is saved automatically. |
+| **Auto-save** | The transcript is saved when you stop, and also if the browser disconnects, Gemini ends the session, the 9½-minute limit is hit, or the server restarts. The UI never stays stuck on "saving": it gives up after 15 s with a clear message. |
 | **History dashboard (CRUD)** | List (newest first, paginated), full-text search, view, create manually, edit, and delete (single or multi-select bulk delete) with confirmation. Shows stats, detected language, source, word count and duration. |
 | **Language detection** | Each transcript is tagged with its languages, e.g. `hi`, `kn`, `en`, `hi+en`, `kn+en`, `hi+kn+en` (script detection for Devanagari / Kannada plus romanised Hindi and Kannada word lists). |
 | **Text to speech** | 🔊 reads any transcription aloud with the browser's built-in speech synthesis (Hindi, Kannada or Indian-English voice). |
@@ -120,13 +120,22 @@ All configuration is in environment variables; see [`.env.example`](.env.example
 ## Tests
 
 ```bash
-cd backend && mvn test
+cd backend  && mvn verify      # 81 tests + coverage report at backend/target/site/jacoco/index.html
+cd frontend && npm test        # 100 tests (Vitest + React Testing Library)
 ```
 
-29 tests cover the CRUD lifecycle, service-layer unit tests (Mockito), validation, pagination and search, language detection, transcript merging,
-Gemini message parsing and setup, and an **end-to-end WebSocket test**: stream audio → receive live transcripts →
-stop → transcript persisted. It uses a fake engine and an H2 database.
+**Backend (JUnit 5, Mockito, Spring Boot Test, H2)**: about 98% line and 93% branch coverage.
+* Controllers: full CRUD lifecycle, bulk delete, validation errors, pagination, search, `/api/info`, SPA routes, health.
+* Service and mapper: Mockito unit tests for every service method and edge case.
+* Gemini client: setup ordering, audio buffering before `setupComplete`, the setup fallback, the buffer cap, fragmented text and binary frames, close and error handling, and URL-encoded API key. A mocked JDK `WebSocket` stands in for Google, so tests need no network.
+* WebSocket flow end to end with a fake engine: stream → live transcripts → stop → saved. Also covered: cancel, stop without speech, an engine error or close mid-recording, browser disconnect (still saved), missing API key, the recording time limit, a database failure, and saving open recordings when the server restarts.
+* Utilities: language detection (Hindi, Kannada, English, mixed), transcript merging, config defaults.
 
+**Frontend (Vitest, jsdom, Testing Library)**
+* API client (URLs, errors, problem details), text-to-speech voice selection, the PCM AudioWorklet (resampling, Int16 conversion, flush), and microphone capture including a failing or hanging shutdown.
+* Live panel and recording hook: connect, stream, live text, stop and save, discard, permission errors, and timeouts, so the UI never stays stuck on "saving".
+* History dashboard: list, search debounce, pagination, create, edit, single and bulk delete with selection.
+* Modal, the 🔊 button, and app navigation.
 ## Deploy (Render, free tier)
 
 The repository has a single multi-stage [`Dockerfile`](Dockerfile) (React build → bundled into the Spring Boot jar) and a
