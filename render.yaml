@@ -1,0 +1,25 @@
+# Render Blueprint: New → Blueprint → select this repo. Set GEMINI_API_KEY when prompted.
+databases:
+  - name: stt-db
+    plan: free
+    databaseName: speech_to_text
+
+services:
+  - type: web
+    name: speech-to-text
+    runtime: docker
+    plan: free
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DB_HOST
+        fromDatabase: { name: stt-db, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: stt-db, property: port }
+      - key: DB_NAME
+        fromDatabase: { name: stt-db, property: database }
+      - key: DB_USER
+        fromDatabase: { name: stt-db, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: stt-db, property: password }

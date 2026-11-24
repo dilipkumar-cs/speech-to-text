@@ -1,0 +1,42 @@
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+
+spring:
+  application:
+    name: speech-to-text
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:speech_to_text}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+stt:
+  # Comma separated list of allowed browser origins (only needed when the UI is served from another host, e.g. Vite dev server)
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173}
+  # Hard cap per live session; the Gemini Live API allows up to 10 minutes of continuous streaming.
+  max-session-seconds: ${MAX_SESSION_SECONDS:570}
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    model: ${GEMINI_MODEL:models/gemini-3.5-transcribe-live}
+    endpoint: ${GEMINI_ENDPOINT:wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent}
+    # Empty = automatic language detection incl. code-switching (Hindi + English in one sentence).
+    language-codes: ${GEMINI_LANGUAGE_CODES:}
+    # VERBATIM = exact words, SMART = cleaned-up text
+    mode: ${GEMINI_MODE:VERBATIM}
+    # Optional domain words that improve recognition accuracy
+    custom-vocabulary: ${GEMINI_CUSTOM_VOCABULARY:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
