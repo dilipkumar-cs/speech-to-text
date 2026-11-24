@@ -113,8 +113,13 @@ class TranscriptionControllerTest {
 
     @Test
     void bulkDeleteRequiresIds() throws Exception {
-        mvc.perform(delete("/api/transcriptions").param("ids", "")).andExpect(status().isBadRequest());
-        mvc.perform(delete("/api/transcriptions")).andExpect(status().isBadRequest());
+        mvc.perform(delete("/api/transcriptions").param("ids", ""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").value("Bad Request"));
+        mvc.perform(delete("/api/transcriptions"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
     }
 
     @Test

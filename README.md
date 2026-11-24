@@ -6,7 +6,8 @@ text-to-speech playback.
 
 **Stack:** Java 17+ · Spring Boot 3.5 (Web, WebSocket, Data JPA, Flyway) · React 18 + TypeScript (Vite) · PostgreSQL 16 · Gemini Live API
 
-> **Live demo:** _<add deployed URL>_
+> **Live demo:** https://speech-to-text-zvwq.onrender.com  
+> _Hosted on Render's free tier: the first request after a period of inactivity can take about a minute while the server wakes up. Allow microphone access when prompted._
 
 ---
 
@@ -58,7 +59,7 @@ backend/src/main/java/com/stt
 │   └── impl/        TranscriptionServiceImpl (business logic, transactions)
 ├── repository/      TranscriptionRepository (Spring Data JPA – DAO layer)
 ├── entity/          Transcription (JPA entity), TranscriptionSource (enum)
-├── dto/             TranscriptionRequest, TranscriptionResponse, PageResponse, StatsResponse, AppInfoResponse
+├── dto/             TranscriptionRequest, TranscriptionResponse, PageResponse, StatsResponse, BulkDeleteResponse, AppInfoResponse
 ├── mapper/          TranscriptionMapper (entity → DTO, entities never leave the service layer)
 ├── exception/       TranscriptionNotFoundException, GlobalExceptionHandler (RFC 9457 problem details)
 ├── websocket/       LiveTranscriptionWebSocketHandler (real-time audio endpoint)
@@ -76,7 +77,7 @@ boundary and the mapper converting between entity and DTO.
 |---|---|
 | client → server | binary frames: 16 kHz mono 16-bit little-endian PCM |
 | client → server | `{"type":"stop","title":"optional"}` · `{"type":"cancel"}` |
-| server → client | `{"type":"ready"}` · `{"type":"transcript","final":"…","interim":"…"}` · `{"type":"saved","transcription":{…}}` · `{"type":"error","message":"…"}` |
+| server → client | `{"type":"ready"}` · `{"type":"transcript","final":"…","interim":"…"}` · `{"type":"saved","transcription":{…} | null}` (null = nothing to save) · `{"type":"error","message":"…"}` |
 
 ### REST API
 
@@ -91,7 +92,7 @@ boundary and the mapper converting between entity and DTO.
 | GET | `/api/transcriptions/stats` | Totals |
 | GET | `/api/info` | Engine availability |
 
-Errors use RFC 9457 problem-details JSON.
+All errors use RFC 9457 problem-details JSON (`GlobalExceptionHandler` extends Spring's `ResponseEntityExceptionHandler`); validation errors also list the failing fields.
 
 ## Run locally
 
@@ -115,7 +116,7 @@ npm run dev
 
 **Or with Docker:** `GEMINI_API_KEY=your-key docker compose up --build`, then open <http://localhost:8080>.
 
-All configuration is in environment variables; see [`.env.example`](.env.example).
+Configuration comes from environment variables (see [`.env.example`](.env.example)). For local development, `application-local.yml` (git-ignored) can hold the same settings instead.
 
 ## Tests
 
@@ -136,6 +137,7 @@ cd frontend && npm test        # 101 tests (Vitest + React Testing Library)
 * Live panel and recording hook: connect, stream, live text, stop and save, discard, permission errors, and timeouts, so the UI never stays stuck on "saving".
 * History dashboard: list, search debounce, pagination, create, edit, single and bulk delete with selection.
 * Modal, the 🔊 button, and app navigation.
+
 ## Deploy (Render, free tier)
 
 The repository has a single multi-stage [`Dockerfile`](Dockerfile) (React build → bundled into the Spring Boot jar) and a
