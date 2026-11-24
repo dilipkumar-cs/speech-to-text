@@ -4,7 +4,7 @@ import type { Page, Stats, Transcription, TranscriptionInput } from '../types';
 import { SpeakButton } from './SpeakButton';
 import { TranscriptionModal } from './TranscriptionModal';
 
-const SOURCE_LABEL = { GEMINI_LIVE: 'Gemini Live', BROWSER: 'Browser', MANUAL: 'Manual' } as const;
+const SOURCE_LABEL = { GEMINI_LIVE: 'Gemini Live', MANUAL: 'Manual' } as const;
 const LANG_NAMES: Record<string, string> = { hi: 'Hindi', kn: 'Kannada', en: 'English' };
 const languageLabel = (tags: string) =>
   tags

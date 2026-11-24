@@ -1,4 +1,4 @@
-export type TranscriptionSource = 'GEMINI_LIVE' | 'BROWSER' | 'MANUAL';
+export type TranscriptionSource = 'GEMINI_LIVE' | 'MANUAL';
 
 export interface Transcription {
   id: number;

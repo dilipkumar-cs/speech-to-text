@@ -4,7 +4,7 @@ Speak in **Hindi, Kannada, English, or any mix of them (Hinglish, Kanglish)** an
 Every recording is stored in **PostgreSQL** and managed from a **history dashboard** with full CRUD, search and
 text-to-speech playback.
 
-**Stack:** Java 21 · Spring Boot 3.5 (Web, WebSocket, Data JPA, Flyway) · React 18 + TypeScript (Vite) · PostgreSQL 16 · Gemini Live API
+**Stack:** Java 17+ · Spring Boot 3.5 (Web, WebSocket, Data JPA, Flyway) · React 18 + TypeScript (Vite) · PostgreSQL 16 · Gemini Live API
 
 > **Live demo:** _<add deployed URL>_
 
@@ -21,7 +21,6 @@ text-to-speech playback.
 | **History dashboard (CRUD)** | List (newest first, paginated), full-text search, view, create manually, edit, and delete with confirmation. Shows stats, detected language, source, word count and duration. |
 | **Language detection** | Each transcript is tagged with its languages, e.g. `hi`, `kn`, `en`, `hi+en`, `kn+en`, `hi+kn+en` (script detection for Devanagari / Kannada plus romanised Hindi and Kannada word lists). |
 | **Text to speech** | 🔊 reads any transcription aloud with the browser's built-in speech synthesis (Hindi, Kannada or Indian-English voice). |
-| **Fallback engine** | With no Gemini key the app still works: it falls back to the browser Web Speech API (`hi-IN`, `kn-IN` or `en-IN`), then saves through the same REST API. |
 
 ## Architecture
 
@@ -95,7 +94,7 @@ Errors use RFC 9457 problem-details JSON.
 
 ## Run locally
 
-**Prerequisites:** Java 21+, Maven, Node 20+, PostgreSQL. You also need a free Gemini API key from <https://aistudio.google.com/apikey>.
+**Prerequisites:** Java 17+, Maven, Node 20+, PostgreSQL. You also need a free Gemini API key from <https://aistudio.google.com/apikey>.
 
 ```bash
 # 1. database
@@ -142,4 +141,3 @@ The same image runs on Railway, Fly.io, Google Cloud Run, or any VM. Set the `DB
 
 * A Gemini Live session can stream for up to 10 minutes; the app stops and saves at 9½ minutes.
 * Language tags come from a heuristic; romanised Hindi/Kannada words outside the built-in lists count as English.
-* The browser fallback engine needs Chrome or Edge (Web Speech API).

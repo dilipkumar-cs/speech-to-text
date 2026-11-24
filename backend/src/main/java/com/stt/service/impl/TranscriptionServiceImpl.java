@@ -39,7 +39,7 @@ public class TranscriptionServiceImpl implements TranscriptionService {
 
     @Override
     public PageResponse<TranscriptionResponse> list(String query, int page, int size) {
-        PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.clamp(size, 1, MAX_PAGE_SIZE),
+        PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE),
                 Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id")));
         Page<Transcription> result = (query == null || query.isBlank())
                 ? repository.findAll(pageable)

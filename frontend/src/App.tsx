@@ -54,7 +54,7 @@ export default function App() {
       </main>
 
       <footer className="muted">
-        {info?.geminiEnabled ? `Engine: ${info.geminiModel.replace('models/', '')} via Gemini Live API` : 'Gemini engine not configured – using browser speech recognition'}
+        {info?.geminiEnabled ? `Engine: ${info.geminiModel.replace('models/', '')} via Gemini Live API` : 'Gemini engine not configured'}
         {' · '}Spring Boot · React · PostgreSQL
       </footer>
     </div>

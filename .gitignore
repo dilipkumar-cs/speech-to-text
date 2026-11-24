@@ -16,3 +16,4 @@ backend/src/main/resources/static/
 
 # local Spring profile with your own DB password / API key
 backend/src/main/resources/application-local.yml
+frontend/*.tsbuildinfo
