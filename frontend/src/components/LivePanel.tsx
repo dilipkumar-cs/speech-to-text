@@ -102,6 +102,7 @@ export function LivePanel({ info, onSaved, onOpenHistory }: Props) {
             <span>Language</span>
             <select value={browserLang} disabled={recording} onChange={(e) => setBrowserLang(e.target.value)}>
               <option value="hi-IN">Hindi + English (hi-IN)</option>
+              <option value="kn-IN">Kannada + English (kn-IN)</option>
               <option value="en-IN">English – India (en-IN)</option>
             </select>
           </label>
@@ -131,7 +132,7 @@ export function LivePanel({ info, onSaved, onOpenHistory }: Props) {
         <div className="recorder-status">
           <strong>{statusLabel}</strong>
           <span className="muted">
-            {recording ? `${formatTime(elapsed)} / ${formatTime(maxSeconds)}` : 'Click the mic and speak in Hindi, English or both'}
+            {recording ? `${formatTime(elapsed)} / ${formatTime(maxSeconds)}` : 'Click the mic and speak in Hindi, Kannada, English or a mix'}
           </span>
         </div>
         {recording && engine === 'gemini' && (

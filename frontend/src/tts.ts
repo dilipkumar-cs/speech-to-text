@@ -1,14 +1,20 @@
 /**
  * Text-to-speech playback using the browser's built-in speech synthesis (no API key, works offline
- * with OS voices). Picks a Hindi voice for Devanagari / Hinglish text, otherwise Indian English.
+ * with OS voices). Picks a Kannada or Hindi voice for those scripts / language tags, otherwise Indian English.
  */
+function preferredLanguages(text: string, languages: string | null): string[] {
+  const tags = (languages ?? '').split('+');
+  if (/[ಀ-೿]/.test(text) || tags.includes('kn')) return ['kn-IN', 'en-IN'];
+  if (/[ऀ-ॿ]/.test(text) || tags.includes('hi')) return ['hi-IN', 'en-IN'];
+  return ['en-IN', 'en-GB', 'en-US'];
+}
+
 export function speak(text: string, languages: string | null, onEnd?: () => void): void {
   const synth = window.speechSynthesis;
   if (!synth) return;
   synth.cancel();
 
-  const hindi = /[ऀ-ॿ]/.test(text) || (languages ?? '').includes('hi');
-  const preferred = hindi ? ['hi-IN', 'en-IN'] : ['en-IN', 'en-GB', 'en-US'];
+  const preferred = preferredLanguages(text, languages);
   const voices = synth.getVoices();
   const voice = preferred.map((lang) => voices.find((v) => v.lang === lang)).find(Boolean);
 

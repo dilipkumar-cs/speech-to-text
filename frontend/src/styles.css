@@ -12,7 +12,7 @@
   --error-bg: #fef2f2;
   --radius: 14px;
   color-scheme: light dark;
-  font-family: Inter, 'Segoe UI', system-ui, -apple-system, 'Noto Sans Devanagari', sans-serif;
+  font-family: Inter, 'Segoe UI', system-ui, -apple-system, 'Noto Sans Devanagari', 'Noto Sans Kannada', sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {

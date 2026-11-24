@@ -1,14 +1,18 @@
 package com.stt.transcription;
 
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
 /**
- * Lightweight, dependency-free detection of Hindi / English / code-mixed (Hinglish) text.
+ * Lightweight, dependency-free detection of Hindi, Kannada, English and code-mixed text
+ * (e.g. Hinglish, Kanglish).
  * <p>
- * Devanagari characters are counted as Hindi. Latin-script words are counted as English unless they
- * are common romanised Hindi words ("kya", "hai", "nahi"...), which is how Hinglish is often written.
+ * Devanagari characters count as Hindi and Kannada-script characters as Kannada. Latin-script words count as
+ * English unless they are common romanised Hindi or Kannada words ("kya", "hai", "illa", "beku"...),
+ * which is how code-mixed speech is often written.
  */
 public final class LanguageDetector {
 
@@ -23,38 +27,54 @@ public final class LanguageDetector {
             "ka", "ki", "ke", "ko", "se", "mein", "liye", "wala", "wali", "ji", "yaar", "bhai", "matlab"
     );
 
+    private static final Set<String> ROMANISED_KANNADA = Set.of(
+            "naanu", "nanu", "neenu", "neevu", "nimma", "nanna", "namma", "avaru", "avanu", "avalu", "yenu", "enu",
+            "yaake", "yake", "elli", "yelli", "hege", "hegiddira", "hegidiya", "chennagide", "chennagiddini",
+            "illa", "ide", "iddini", "idini", "beku", "beda", "baa", "banni", "hogi", "hogona", "hogbeku", "maadi",
+            "madi", "maadu", "gottilla", "gottu", "swalpa", "houdu", "howdu", "sari", "aytu", "ayitu", "guru",
+            "oota", "mane", "naale", "ivattu", "ninne", "dhanyavadagalu", "namaskara", "kannada", "kelsa", "tumba"
+    );
+
     private LanguageDetector() {
     }
 
-    /** @return "hi", "en", "hi+en", or null when the text has no letters. */
+    /**
+     * @return the detected languages joined with "+" in a stable order (e.g. "hi", "kn", "en", "hi+en",
+     * "kn+en", "hi+kn+en"), or null when the text has no letters.
+     */
     public static String detect(String text) {
         if (text == null || text.isBlank()) {
             return null;
         }
-        int hindi = 0;
-        int english = 0;
+        boolean hindi = false;
+        boolean kannada = false;
+        boolean english = false;
         for (String word : WORD_SPLIT.split(text)) {
             if (word.isEmpty()) {
                 continue;
             }
-            if (isDevanagari(word)) {
-                hindi++;
-            } else if (ROMANISED_HINDI.contains(word.toLowerCase(Locale.ROOT))) {
-                hindi++;
+            String lower = word.toLowerCase(Locale.ROOT);
+            if (hasScript(word, Character.UnicodeBlock.DEVANAGARI) || ROMANISED_HINDI.contains(lower)) {
+                hindi = true;
+            } else if (hasScript(word, Character.UnicodeBlock.KANNADA) || ROMANISED_KANNADA.contains(lower)) {
+                kannada = true;
             } else if (word.chars().anyMatch(Character::isLetter)) {
-                english++;
+                english = true;
             }
         }
-        if (hindi == 0 && english == 0) {
+        Set<String> found = new LinkedHashSet<>();
+        if (hindi) found.add("hi");
+        if (kannada) found.add("kn");
+        if (english) found.add("en");
+        if (found.isEmpty()) {
             return null;
         }
-        if (hindi > 0 && english > 0) {
-            return "hi+en";
-        }
-        return hindi > 0 ? "hi" : "en";
+        StringJoiner joiner = new StringJoiner("+");
+        found.forEach(joiner::add);
+        return joiner.toString();
     }
 
-    private static boolean isDevanagari(String word) {
-        return word.codePoints().anyMatch(cp -> Character.UnicodeBlock.of(cp) == Character.UnicodeBlock.DEVANAGARI);
+    private static boolean hasScript(String word, Character.UnicodeBlock block) {
+        return word.codePoints().anyMatch(cp -> Character.UnicodeBlock.of(cp) == block);
     }
 }

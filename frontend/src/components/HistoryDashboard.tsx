@@ -5,7 +5,12 @@ import { SpeakButton } from './SpeakButton';
 import { TranscriptionModal } from './TranscriptionModal';
 
 const SOURCE_LABEL = { GEMINI_LIVE: 'Gemini Live', BROWSER: 'Browser', MANUAL: 'Manual' } as const;
-const LANG_LABEL: Record<string, string> = { hi: 'Hindi', en: 'English', 'hi+en': 'Hindi + English' };
+const LANG_NAMES: Record<string, string> = { hi: 'Hindi', kn: 'Kannada', en: 'English' };
+const languageLabel = (tags: string) =>
+  tags
+    .split('+')
+    .map((t) => LANG_NAMES[t] ?? t)
+    .join(' + ');
 
 const formatDuration = (s: number | null) =>
   s == null ? '—' : s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
@@ -128,7 +133,7 @@ export function HistoryDashboard({ refreshKey }: { refreshKey: number }) {
             </p>
             <div className="meta">
               <span className={`badge src-${t.source.toLowerCase()}`}>{SOURCE_LABEL[t.source]}</span>
-              {t.languages && <span className="badge">{LANG_LABEL[t.languages] ?? t.languages}</span>}
+              {t.languages && <span className="badge">{languageLabel(t.languages)}</span>}
               <span>{t.wordCount} words</span>
               <span>{formatDuration(t.durationSeconds)}</span>
               <span title={new Date(t.createdAt).toLocaleString()}>{new Date(t.createdAt).toLocaleString()}</span>

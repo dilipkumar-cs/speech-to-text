@@ -32,7 +32,7 @@ export default function App() {
           <span className="logo">🎙️</span>
           <div>
             <h1>Speech to Text</h1>
-            <p className="muted">Real-time multilingual transcription · Hindi · English · Hinglish</p>
+            <p className="muted">Real-time multilingual transcription · Hindi · Kannada · English · code-mixed</p>
           </div>
         </div>
         <nav>

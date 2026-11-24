@@ -15,6 +15,10 @@ class LanguageDetectorTest {
             "मुझे कल meeting attend करनी है               | hi+en",
             "kya aap tomorrow office aa rahe ho         | hi+en",
             "kya haal hai bhai                          | hi",
+            "ನಾನು ಚೆನ್ನಾಗಿದ್ದೀನಿ                            | kn",
+            "ನಾಳೆ office ಗೆ ಹೋಗಬೇಕು                       | kn+en",
+            "naale meeting ge hogbeku                   | kn+en",
+            "मुझे ಕನ್ನಡ और English दोनों आती है            | hi+kn+en",
     })
     void detectsHindiEnglishAndMixedSpeech(String text, String expected) {
         assertThat(LanguageDetector.detect(text)).isEqualTo(expected);

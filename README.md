@@ -1,6 +1,6 @@
 # 🎙️ Speech to Text — Real-time Multilingual Transcription
 
-Speak in **Hindi, English, or a mix of both (Hinglish)** and watch your words appear **as you speak**.
+Speak in **Hindi, Kannada, English, or any mix of them (Hinglish, Kanglish)** and watch your words appear **as you speak**.
 Every recording is stored in **PostgreSQL** and managed from a **history dashboard** with full CRUD, search and
 text-to-speech playback.
 
@@ -15,13 +15,13 @@ text-to-speech playback.
 | | |
 |---|---|
 | **Real-time transcription** | Mic audio is streamed in 100 ms chunks over a WebSocket. Interim words appear live (in grey) and are replaced by finalised text. |
-| **Multilingual / code-switching** | The Gemini Live transcription model auto-detects language **per utterance**, so a sentence like _"मुझे कल meeting attend करनी है"_ is transcribed as spoken. |
+| **Multilingual / code-switching** | The Gemini Live transcription model auto-detects language **per utterance**, so a sentence like _"मुझे कल meeting attend करनी है"_ or _"ನಾಳೆ office ಗೆ ಹೋಗಬೇಕು"_ is transcribed as spoken. |
 | **Secure by design** | The browser never sees the Gemini API key. It streams to our Spring Boot backend, which relays the audio to Gemini. |
 | **Auto-save** | When you stop (or if the browser disconnects or the 10-minute session limit is hit) the transcript is saved automatically. |
 | **History dashboard (CRUD)** | List (newest first, paginated), full-text search, view, create manually, edit, and delete with confirmation. Shows stats, detected language, source, word count and duration. |
-| **Language detection** | Each transcript is tagged `hi`, `en` or `hi+en` (Devanagari + romanised-Hindi heuristics). |
-| **Text to speech** | 🔊 reads any transcription aloud with the browser's built-in speech synthesis (Hindi or Indian-English voice). |
-| **Fallback engine** | With no Gemini key the app still works: it falls back to the browser Web Speech API (`hi-IN`), then saves through the same REST API. |
+| **Language detection** | Each transcript is tagged with its languages, e.g. `hi`, `kn`, `en`, `hi+en`, `kn+en`, `hi+kn+en` (script detection for Devanagari / Kannada plus romanised Hindi and Kannada word lists). |
+| **Text to speech** | 🔊 reads any transcription aloud with the browser's built-in speech synthesis (Hindi, Kannada or Indian-English voice). |
+| **Fallback engine** | With no Gemini key the app still works: it falls back to the browser Web Speech API (`hi-IN`, `kn-IN` or `en-IN`), then saves through the same REST API. |
 
 ## Architecture
 
@@ -99,7 +99,7 @@ All configuration is in environment variables; see [`.env.example`](.env.example
 cd backend && mvn test
 ```
 
-20 tests cover the CRUD lifecycle, validation, pagination and search, language detection, transcript merging,
+24 tests cover the CRUD lifecycle, validation, pagination and search, language detection, transcript merging,
 Gemini message parsing and setup, and an **end-to-end WebSocket test**: stream audio → receive live transcripts →
 stop → transcript persisted. It uses a fake engine and an H2 database.
 
@@ -117,5 +117,5 @@ The same image runs on Railway, Fly.io, Google Cloud Run, or any VM. Set the `DB
 ## Notes and limitations
 
 * A Gemini Live session can stream for up to 10 minutes; the app stops and saves at 9½ minutes.
-* Language tags come from a heuristic; romanised Hindi words outside the built-in list count as English.
+* Language tags come from a heuristic; romanised Hindi/Kannada words outside the built-in lists count as English.
 * The browser fallback engine needs Chrome or Edge (Web Speech API).
