@@ -48,6 +48,29 @@ text-to-speech playback.
   acknowledged, and parses `interimInputTranscription` / `inputTranscription` messages.
 * **`TranscriptAccumulator`** merges final segments and the current interim hypothesis (VERBATIM appends, SMART replaces).
 
+### Backend package structure (layered)
+
+```
+backend/src/main/java/com/stt
+├── SpeechToTextApplication.java
+├── config/          SttProperties (typed config), WebConfig (CORS, WebSocket registration)
+├── controller/      TranscriptionController (REST CRUD), AppInfoController, SpaForwardingController
+├── service/         TranscriptionService (interface)
+│   └── impl/        TranscriptionServiceImpl (business logic, transactions)
+├── repository/      TranscriptionRepository (Spring Data JPA – DAO layer)
+├── entity/          Transcription (JPA entity), TranscriptionSource (enum)
+├── dto/             TranscriptionRequest, TranscriptionResponse, PageResponse, StatsResponse, AppInfoResponse
+├── mapper/          TranscriptionMapper (entity → DTO, entities never leave the service layer)
+├── exception/       TranscriptionNotFoundException, GlobalExceptionHandler (RFC 9457 problem details)
+├── websocket/       LiveTranscriptionWebSocketHandler (real-time audio endpoint)
+├── client/          LiveTranscriber (speech engine abstraction)
+│   └── gemini/      GeminiLiveTranscriber, GeminiLiveSession (Gemini Live API client)
+└── util/            LanguageDetector, TranscriptAccumulator
+```
+
+Request flow: `Controller → Service (interface) → ServiceImpl → Repository → PostgreSQL`, with DTOs at the API
+boundary and the mapper converting between entity and DTO.
+
 ### WebSocket protocol (`/ws/transcribe`)
 
 | Direction | Message |
@@ -99,7 +122,7 @@ All configuration is in environment variables; see [`.env.example`](.env.example
 cd backend && mvn test
 ```
 
-24 tests cover the CRUD lifecycle, validation, pagination and search, language detection, transcript merging,
+29 tests cover the CRUD lifecycle, service-layer unit tests (Mockito), validation, pagination and search, language detection, transcript merging,
 Gemini message parsing and setup, and an **end-to-end WebSocket test**: stream audio → receive live transcripts →
 stop → transcript persisted. It uses a fake engine and an H2 database.
 

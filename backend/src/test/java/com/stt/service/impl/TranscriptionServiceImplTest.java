@@ -1,0 +1,106 @@
+package com.stt.service.impl;
+
+import com.stt.dto.TranscriptionRequest;
+import com.stt.dto.TranscriptionResponse;
+import com.stt.entity.Transcription;
+import com.stt.entity.TranscriptionSource;
+import com.stt.exception.TranscriptionNotFoundException;
+import com.stt.mapper.TranscriptionMapper;
+import com.stt.repository.TranscriptionRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class TranscriptionServiceImplTest {
+
+    @Mock
+    TranscriptionRepository repository;
+
+    TranscriptionServiceImpl service;
+
+    @BeforeEach
+    void setUp() {
+        service = new TranscriptionServiceImpl(repository, new TranscriptionMapper());
+    }
+
+    @Test
+    void createDefaultsToManualSourceTrimsTextAndDetectsLanguage() {
+        when(repository.save(any(Transcription.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TranscriptionResponse response = service.create(
+                new TranscriptionRequest("  Notes  ", "  ನಾಳೆ office ಗೆ ಹೋಗಬೇಕು  ", null, 12));
+
+        ArgumentCaptor<Transcription> saved = ArgumentCaptor.forClass(Transcription.class);
+        verify(repository).save(saved.capture());
+        assertThat(saved.getValue().getTitle()).isEqualTo("Notes");
+        assertThat(saved.getValue().getContent()).isEqualTo("ನಾಳೆ office ಗೆ ಹೋಗಬೇಕು");
+        assertThat(saved.getValue().getSource()).isEqualTo(TranscriptionSource.MANUAL);
+        assertThat(response.languages()).isEqualTo("kn+en");
+        assertThat(response.wordCount()).isEqualTo(4);
+    }
+
+    @Test
+    void blankTitleGetsGeneratedDefault() {
+        when(repository.save(any(Transcription.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TranscriptionResponse response = service.save(" ", "hello", TranscriptionSource.GEMINI_LIVE, 3);
+
+        assertThat(response.title()).startsWith("Recording ");
+        assertThat(response.source()).isEqualTo(TranscriptionSource.GEMINI_LIVE);
+    }
+
+    @Test
+    void updateKeepsTitleWhenNotProvidedAndRedetectsLanguage() {
+        Transcription existing = new Transcription("Original", "hello world", "en", TranscriptionSource.MANUAL, null);
+        when(repository.findById(7L)).thenReturn(Optional.of(existing));
+        when(repository.saveAndFlush(existing)).thenReturn(existing);
+
+        TranscriptionResponse response = service.update(7L, new TranscriptionRequest(null, "kya haal hai", null, null));
+
+        assertThat(response.title()).isEqualTo("Original");
+        assertThat(response.content()).isEqualTo("kya haal hai");
+        assertThat(response.languages()).isEqualTo("hi");
+    }
+
+    @Test
+    void missingIdThrowsNotFound() {
+        when(repository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.delete(99L)).isInstanceOf(TranscriptionNotFoundException.class)
+                .hasMessageContaining("99");
+        verify(repository, never()).delete(any());
+    }
+
+    @Test
+    void listUsesSearchOnlyWhenQueryPresentAndClampsPageSize() {
+        Page<Transcription> empty = new PageImpl<>(List.of());
+        when(repository.findAll(any(Pageable.class))).thenReturn(empty);
+        when(repository.search(eq("standup"), any(Pageable.class))).thenReturn(empty);
+
+        service.list("  ", 0, 1_000);
+        service.list(" standup ", -1, 10);
+
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findAll(pageable.capture());
+        assertThat(pageable.getValue().getPageSize()).isEqualTo(TranscriptionServiceImpl.MAX_PAGE_SIZE);
+        verify(repository).search(eq("standup"), any(Pageable.class));
+    }
+}

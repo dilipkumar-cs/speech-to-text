@@ -1,6 +1,6 @@
 package com.stt.config;
 
-import com.stt.realtime.LiveTranscriptionWebSocketHandler;
+import com.stt.websocket.LiveTranscriptionWebSocketHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
