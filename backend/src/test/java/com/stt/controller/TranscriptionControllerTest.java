@@ -93,6 +93,31 @@ class TranscriptionControllerTest {
     }
 
     @Test
+    void bulkDeleteRemovesSelectedAndIgnoresUnknownIds() throws Exception {
+        long[] ids = new long[3];
+        for (int i = 0; i < 3; i++) {
+            String json = mvc.perform(post("/api/transcriptions").contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"title\":\"t" + i + "\",\"content\":\"text " + i + "\"}"))
+                    .andReturn().getResponse().getContentAsString();
+            ids[i] = mapper.readTree(json).path("id").asLong();
+        }
+
+        mvc.perform(delete("/api/transcriptions").param("ids", ids[0] + "," + ids[2] + ",999999"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.deleted").value(2));
+
+        mvc.perform(get("/api/transcriptions"))
+                .andExpect(jsonPath("$.totalItems").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(ids[1]));
+    }
+
+    @Test
+    void bulkDeleteRequiresIds() throws Exception {
+        mvc.perform(delete("/api/transcriptions").param("ids", "")).andExpect(status().isBadRequest());
+        mvc.perform(delete("/api/transcriptions")).andExpect(status().isBadRequest());
+    }
+
+    @Test
     void rejectsBlankContent() throws Exception {
         mvc.perform(post("/api/transcriptions").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"x\",\"content\":\"   \"}"))

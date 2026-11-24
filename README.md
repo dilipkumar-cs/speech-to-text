@@ -18,7 +18,7 @@ text-to-speech playback.
 | **Multilingual / code-switching** | The Gemini Live transcription model auto-detects language **per utterance**, so a sentence like _"मुझे कल meeting attend करनी है"_ or _"ನಾಳೆ office ಗೆ ಹೋಗಬೇಕು"_ is transcribed as spoken. |
 | **Secure by design** | The browser never sees the Gemini API key. It streams to our Spring Boot backend, which relays the audio to Gemini. |
 | **Auto-save** | When you stop (or if the browser disconnects or the 10-minute session limit is hit) the transcript is saved automatically. |
-| **History dashboard (CRUD)** | List (newest first, paginated), full-text search, view, create manually, edit, and delete with confirmation. Shows stats, detected language, source, word count and duration. |
+| **History dashboard (CRUD)** | List (newest first, paginated), full-text search, view, create manually, edit, and delete (single or multi-select bulk delete) with confirmation. Shows stats, detected language, source, word count and duration. |
 | **Language detection** | Each transcript is tagged with its languages, e.g. `hi`, `kn`, `en`, `hi+en`, `kn+en`, `hi+kn+en` (script detection for Devanagari / Kannada plus romanised Hindi and Kannada word lists). |
 | **Text to speech** | 🔊 reads any transcription aloud with the browser's built-in speech synthesis (Hindi, Kannada or Indian-English voice). |
 
@@ -87,6 +87,7 @@ boundary and the mapper converting between entity and DTO.
 | POST | `/api/transcriptions` | Create `{title?, content, source?, durationSeconds?}` |
 | PUT | `/api/transcriptions/{id}` | Update `{title?, content}` |
 | DELETE | `/api/transcriptions/{id}` | Delete |
+| DELETE | `/api/transcriptions?ids=1,2,3` | Bulk delete selected (max 100) → `{deleted: n}` |
 | GET | `/api/transcriptions/stats` | Totals |
 | GET | `/api/info` | Engine availability |
 

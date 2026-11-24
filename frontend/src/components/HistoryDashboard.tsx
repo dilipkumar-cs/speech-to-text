@@ -26,6 +26,10 @@ export function HistoryDashboard({ refreshKey }: { refreshKey: number }) {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Transcription | null | undefined>(undefined); // undefined = closed
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+
+  // Selection is per page/search: start fresh when either changes.
+  useEffect(() => setSelected(new Set()), [debounced, page]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -68,6 +72,37 @@ export function HistoryDashboard({ refreshKey }: { refreshKey: number }) {
     if (!window.confirm(`Delete "${t.title}"? This cannot be undone.`)) return;
     try {
       await api.remove(t.id);
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(t.id);
+        return next;
+      });
+      await load();
+    } catch (e) {
+      setError(`Delete failed: ${(e as Error).message}`);
+    }
+  };
+
+  const items = data?.items ?? [];
+  const allSelected = items.length > 0 && items.every((t) => selected.has(t.id));
+  const someSelected = selected.size > 0 && !allSelected;
+
+  const toggle = (id: number) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(items.map((t) => t.id)));
+
+  const removeSelected = async () => {
+    const count = selected.size;
+    if (!window.confirm(`Delete ${count} selected transcription${count === 1 ? '' : 's'}? This cannot be undone.`)) return;
+    try {
+      await api.removeMany([...selected]);
+      setSelected(new Set());
       await load();
     } catch (e) {
       setError(`Delete failed: ${(e as Error).message}`);
@@ -102,6 +137,34 @@ export function HistoryDashboard({ refreshKey }: { refreshKey: number }) {
 
       {error && <div className="alert error">{error}</div>}
 
+      {items.length > 0 && (
+        <div className={`selection-bar ${selected.size > 0 ? 'active' : ''}`}>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              ref={(el) => {
+                if (el) el.indeterminate = someSelected;
+              }}
+              onChange={toggleAll}
+              aria-label="Select all on this page"
+            />
+            <span>{selected.size > 0 ? `${selected.size} selected` : 'Select all'}</span>
+          </label>
+          {selected.size > 0 && (
+            <>
+              <span className="spacer" />
+              <button className="ghost" onClick={() => setSelected(new Set())}>
+                Clear
+              </button>
+              <button className="danger-btn" onClick={() => void removeSelected()}>
+                🗑 Delete selected ({selected.size})
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       {data && data.items.length === 0 && !loading && (
         <p className="empty">
           {debounced ? `No transcriptions match "${debounced}".` : 'No transcriptions yet. Record one from the Live tab.'}
@@ -110,8 +173,15 @@ export function HistoryDashboard({ refreshKey }: { refreshKey: number }) {
 
       <ul className={`history ${loading ? 'loading' : ''}`}>
         {data?.items.map((t) => (
-          <li key={t.id}>
+          <li key={t.id} className={selected.has(t.id) ? 'selected' : ''}>
             <div className="history-head">
+              <input
+                type="checkbox"
+                className="row-check"
+                checked={selected.has(t.id)}
+                onChange={() => toggle(t.id)}
+                aria-label={`Select ${t.title}`}
+              />
               <button className="title" onClick={() => setExpanded(expanded === t.id ? null : t.id)}>
                 {t.title}
               </button>

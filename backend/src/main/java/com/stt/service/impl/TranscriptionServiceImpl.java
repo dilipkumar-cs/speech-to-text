@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
@@ -85,6 +86,17 @@ public class TranscriptionServiceImpl implements TranscriptionService {
     @Transactional
     public void delete(long id) {
         repository.delete(find(id));
+    }
+
+    @Override
+    @Transactional
+    public int deleteAll(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        List<Transcription> found = repository.findAllById(ids);
+        repository.deleteAllInBatch(found);
+        return found.size();
     }
 
     @Override

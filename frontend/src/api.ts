@@ -36,6 +36,8 @@ export const api = {
   update: (id: number, body: TranscriptionInput) =>
     request<Transcription>(`/api/transcriptions/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   remove: (id: number) => request<void>(`/api/transcriptions/${id}`, { method: 'DELETE' }),
+  removeMany: (ids: number[]) =>
+    request<{ deleted: number }>(`/api/transcriptions?ids=${ids.join(',')}`, { method: 'DELETE' }),
 };
 
 export function webSocketUrl(path: string): string {

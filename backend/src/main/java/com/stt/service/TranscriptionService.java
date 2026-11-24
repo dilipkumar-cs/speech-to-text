@@ -6,6 +6,8 @@ import com.stt.dto.TranscriptionRequest;
 import com.stt.dto.TranscriptionResponse;
 import com.stt.entity.TranscriptionSource;
 
+import java.util.List;
+
 /** Business operations on stored transcriptions. */
 public interface TranscriptionService {
 
@@ -22,6 +24,9 @@ public interface TranscriptionService {
     TranscriptionResponse update(long id, TranscriptionRequest request);
 
     void delete(long id);
+
+    /** Deletes the given transcriptions in one transaction; unknown ids are ignored. @return how many were deleted */
+    int deleteAll(List<Long> ids);
 
     StatsResponse stats();
 }

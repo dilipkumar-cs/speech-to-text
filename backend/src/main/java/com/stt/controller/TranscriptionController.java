@@ -1,11 +1,13 @@
 package com.stt.controller;
 
+import com.stt.dto.BulkDeleteResponse;
 import com.stt.dto.PageResponse;
 import com.stt.dto.StatsResponse;
 import com.stt.dto.TranscriptionRequest;
 import com.stt.dto.TranscriptionResponse;
 import com.stt.service.TranscriptionService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -19,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/transcriptions")
@@ -64,5 +68,11 @@ public class TranscriptionController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable long id) {
         service.delete(id);
+    }
+
+    /** Bulk delete: {@code DELETE /api/transcriptions?ids=1,2,3} (up to 100 at a time). */
+    @DeleteMapping
+    public BulkDeleteResponse deleteAll(@RequestParam @Size(min = 1, max = 100) List<Long> ids) {
+        return new BulkDeleteResponse(service.deleteAll(ids));
     }
 }
