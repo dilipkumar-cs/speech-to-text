@@ -1,0 +1,12 @@
+# Copy this file to application-local.yml (same folder) and fill in your values.
+# application-local.yml is git-ignored, so your password and API key stay on your machine.
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/speech_to_text
+    username: postgres
+    password: your-postgres-password
+
+stt:
+  gemini:
+    api-key: your-gemini-api-key   # free key from https://aistudio.google.com/apikey

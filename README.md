@@ -103,9 +103,8 @@ createdb speech_to_text            # or: psql -U postgres -c "CREATE DATABASE sp
 
 # 2. backend (http://localhost:8080) – Flyway creates the table on start-up
 cd backend
-# put your settings in backend/.env (git-ignored), e.g.
-#   DB_PASSWORD=your-postgres-password
-#   GEMINI_API_KEY=your-key
+# copy src/main/resources/application-local.example.yml to application-local.yml (git-ignored)
+# and fill in your PostgreSQL password and Gemini API key – it is loaded via the default 'local' profile
 mvn spring-boot:run
 
 # 3. frontend (http://localhost:5173, proxies /api and /ws to :8080)

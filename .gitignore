@@ -13,3 +13,6 @@ backend/src/main/resources/static/
 # secrets
 .env
 *.local
+
+# local Spring profile with your own DB password / API key
+backend/src/main/resources/application-local.yml

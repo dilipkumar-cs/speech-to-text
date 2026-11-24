@@ -5,9 +5,10 @@ server:
 spring:
   application:
     name: speech-to-text
-  config:
-    # Local secrets (DB_PASSWORD, GEMINI_API_KEY...) can live in backend/.env – git-ignored, optional.
-    import: optional:file:.env[.properties]
+  profiles:
+    # When no profile is set, the "local" profile is used: put your own DB password and Gemini key in
+    # application-local.yml (git-ignored). On a server, set SPRING_PROFILES_ACTIVE or the env variables instead.
+    default: local
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:speech_to_text}
     username: ${DB_USER:postgres}
