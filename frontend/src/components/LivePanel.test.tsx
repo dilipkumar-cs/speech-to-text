@@ -72,8 +72,16 @@ function setup(info: AppInfo | null = INFO) {
   const onSaved = vi.fn();
   const onOpenHistory = vi.fn();
   const user = userEvent.setup();
-  const { unmount } = render(<LivePanel info={info} onSaved={onSaved} onOpenHistory={onOpenHistory} />);
-  return { user, onSaved, onOpenHistory, unmount };
+  const panel = (active: boolean) => (
+    <LivePanel info={info} active={active} onSaved={onSaved} onOpenHistory={onOpenHistory} />
+  );
+  const { unmount, rerender } = render(panel(true));
+  /** Simulates going to the History tab and back again. */
+  const visitHistoryAndReturn = () => {
+    act(() => rerender(panel(false)));
+    act(() => rerender(panel(true)));
+  };
+  return { user, onSaved, onOpenHistory, unmount, visitHistoryAndReturn };
 }
 
 /** Clicks the mic and opens the socket; returns the socket. */
@@ -277,6 +285,33 @@ describe('LivePanel', () => {
     expect(ws.sentJson()).not.toContainEqual({ type: 'stop' });
     expect(screen.getByText(/Lost connection to the server before the recording could be saved/)).toBeInTheDocument();
     expect(screen.getByText('Ready')).toBeInTheDocument();
+  });
+
+  it('clears the previous result when coming back to the Live tab after a finished recording', async () => {
+    const { user, visitHistoryAndReturn } = setup();
+    const ws = await startRecording(user);
+    act(() => ws.receive({ type: 'transcript', final: 'old words', interim: '' }));
+    await user.click(screen.getByRole('button', { name: 'Stop recording' }));
+    act(() => ws.receive({ type: 'saved', transcription: SAVED }));
+    expect(screen.getByText(/Saved as/)).toBeInTheDocument();
+
+    visitHistoryAndReturn();
+
+    expect(screen.queryByText(/Saved as/)).not.toBeInTheDocument();
+    expect(screen.queryByText('namaste team')).not.toBeInTheDocument();
+    expect(screen.getByText(/Your words will appear here/)).toBeInTheDocument();
+  });
+
+  it('keeps a recording in progress when switching to History and back', async () => {
+    const { user, visitHistoryAndReturn } = setup();
+    const ws = await startRecording(user);
+    act(() => ws.receive({ type: 'transcript', final: 'still talking', interim: 'more' }));
+
+    visitHistoryAndReturn();
+
+    expect(screen.getByText('still talking')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Stop recording' })).toBeInTheDocument();
+    expect(ws.readyState).toBe(FakeWebSocket.OPEN);
   });
 
   it('sends no title when the title is blank', async () => {

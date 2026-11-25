@@ -48,7 +48,7 @@ export default function App() {
       <main>
         {/* Keep the live panel mounted so a recording continues while browsing history */}
         <div hidden={tab !== 'live'}>
-          <LivePanel info={info} onSaved={() => setRefreshKey((k) => k + 1)} onOpenHistory={() => go('history')} />
+          <LivePanel info={info} active={tab === 'live'} onSaved={() => setRefreshKey((k) => k + 1)} onOpenHistory={() => go('history')} />
         </div>
         {tab === 'history' && <HistoryDashboard refreshKey={refreshKey} />}
       </main>

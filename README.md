@@ -122,7 +122,7 @@ Configuration comes from environment variables (see [`.env.example`](.env.exampl
 
 ```bash
 cd backend  && mvn verify      # 81 tests + coverage report at backend/target/site/jacoco/index.html
-cd frontend && npm test        # 101 tests (Vitest + React Testing Library)
+cd frontend && npm test        # 103 tests (Vitest + React Testing Library)
 ```
 
 **Backend (JUnit 5, Mockito, Spring Boot Test, H2)**: about 98% line and 93% branch coverage.

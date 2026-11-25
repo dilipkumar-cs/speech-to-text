@@ -149,6 +149,14 @@ export function useLiveTranscription(onSaved: (t: Transcription | null) => void)
     setInterim('');
   }, [stopCapture]);
 
+  /** Clears the previous result (transcript, errors). Does nothing while a recording is in progress. */
+  const reset = useCallback(() => {
+    if (statusRef.current !== 'idle') return;
+    setFinalText('');
+    setInterim('');
+    setError(null);
+  }, []);
+
   useEffect(
     () => () => {
       clearTimeout(saveTimer.current);
@@ -158,5 +166,5 @@ export function useLiveTranscription(onSaved: (t: Transcription | null) => void)
     [],
   );
 
-  return { status, finalText, interim, error, level, engineReady, start, stop, cancel };
+  return { status, finalText, interim, error, level, engineReady, start, stop, cancel, reset };
 }

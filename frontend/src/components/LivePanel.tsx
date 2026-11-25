@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLiveTranscription } from '../hooks/useLiveTranscription';
 import type { AppInfo, Transcription } from '../types';
 import { SpeakButton } from './SpeakButton';
 
 interface Props {
   info: AppInfo | null;
+  /** Whether the Live tab is currently shown. The panel stays mounted so a recording survives tab switches. */
+  active: boolean;
   onSaved: () => void;
   onOpenHistory: () => void;
 }
@@ -18,7 +20,7 @@ const STATUS_LABEL = {
   stopping: 'Finalising & saving…',
 } as const;
 
-export function LivePanel({ info, onSaved, onOpenHistory }: Props) {
+export function LivePanel({ info, active, onSaved, onOpenHistory }: Props) {
   const [title, setTitle] = useState('');
   const [saved, setSaved] = useState<Transcription | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -32,6 +34,19 @@ export function LivePanel({ info, onSaved, onOpenHistory }: Props) {
 
   const recording = live.status !== 'idle';
   const engineMissing = info !== null && !info.geminiEnabled;
+
+  // Coming back to the Live tab after a finished recording starts fresh: the old result may have been
+  // edited or deleted in History meanwhile. A recording that is still in progress is left untouched.
+  const wasActive = useRef(active);
+  const { reset } = live;
+  useEffect(() => {
+    if (active && !wasActive.current && !recording) {
+      reset();
+      setSaved(null);
+      setNotice(null);
+    }
+    wasActive.current = active;
+  }, [active, recording, reset]);
 
   useEffect(() => {
     if (!recording) return;
